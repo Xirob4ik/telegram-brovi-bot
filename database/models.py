@@ -127,12 +127,11 @@ async def get_service(db: aiosqlite.Connection, service_id: int) -> Optional[dic
 
 
 async def add_service(db: aiosqlite.Connection, name: str, price: int) -> int:
-    """Добавить новую услугу, вернуть ID"""
+    """Добавить новую услугу, вернуть ID (без коммита)"""
     cursor = await db.execute(
         "INSERT INTO services (name, price) VALUES (?, ?)",
         (name, price)
     )
-    await db.commit()
     return cursor.lastrowid
 
 
@@ -163,14 +162,13 @@ async def delete_service(db: aiosqlite.Connection, service_id: int):
 # ==================== SLOTS ====================
 
 async def create_slot(db: aiosqlite.Connection, date: str, time: str) -> int:
-    """Создать временной слот"""
+    """Создать временной слот (без коммита)"""
     logging.info(f"Создание слота в БД: {date} {time}")
     try:
         cursor = await db.execute(
             "INSERT INTO slots (date, time, is_available) VALUES (?, ?, 1)",
             (date, time)
         )
-        await db.commit()
         slot_id = cursor.lastrowid
         logging.info(f"Слот успешно создан с ID: {slot_id}")
         return slot_id

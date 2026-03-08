@@ -117,6 +117,7 @@ async def admin_add_slot_time(message: types.Message, state: FSMContext):
     async with get_db() as db:
         try:
             slot_id = await create_slot(db, date_str, time_str)
+            await db.commit()
             logger.info(f"Слот успешно добавлен с ID: {slot_id}")
         except Exception as e:
             logger.error(f"Ошибка при добавлении слота: {e}")
@@ -263,6 +264,7 @@ async def admin_add_service_price(message: types.Message, state: FSMContext):
                     return
             
             service_id = await add_service(db, service_name, price)
+            await db.commit()
         except Exception as e:
             logger.error(f"Ошибка при добавлении услуги: {e}")
             await message.answer(f"❌ Ошибка при добавлении услуги: {e}")
