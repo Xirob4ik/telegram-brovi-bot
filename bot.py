@@ -1,105 +1,35 @@
-#!/usr/bin/env python3
-"""
-Telegram-бот для записи к бровисту
-aiogram 3.x + SQLite + APScheduler
-"""
-import asyncio
+from aiogram import Dispatcher, Bot
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher.filters import Text
 import logging
-from aiogram import Bot, Dispatcher, types
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
-from config import BOT_TOKEN, ADMIN_ID
-from database import init_db
-from scheduler import init_scheduler, restore_reminders
-from handlers import (
-    start_router,
-    booking_router,
-    admin_router,
-    prices_router,
-    portfolio_router,
-    cancel_router
-)
+import config
+import models
+from handlers.user_handlers import register_handlers
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
+storage = MemoryStorage()
+bot = Bot(token=config.BOT_TOKEN)
+dp = Dispatcher(bot, storage=storage)
 
-async def on_startup(bot: Bot):
-    """Действия при запуске бота"""
-    logger.info("🚀 Бот запускается...")
-    
-    await init_db()
-    logger.info("✅ База данных инициализирована")
-    
-    init_scheduler()
-    
-    await restore_reminders(bot)
-    logger.info("✅ Напоминания восстановлены")
-    
-    try:
-        await bot.send_message(
-            chat_id=ADMIN_ID,
-            text="🟢 <b>Бот запущен</b>",
-            parse_mode="HTML"
-        )
-    except Exception as e:
-        logger.warning(f"⚠️ Не удалось отправить уведомление о запуске: {e}")
+# Initialize database
+models.init_db()
 
+# Register all handlers
+register_handlers(dp)
 
-async def on_shutdown(bot: Bot):
-    """Действия при остановке бота"""
-    logger.info("🛑 Бот останавливается...")
-    
-    from scheduler import scheduler
-    if scheduler.running:
-        scheduler.shutdown()
-        logger.info("✅ APScheduler остановлен")
-    
-    try:
-        await bot.send_message(
-            chat_id=ADMIN_ID,
-            text="🔴 <b>Бот остановлен</b>",
-            parse_mode="HTML"
-        )
-    except Exception:
-        pass
+async def on_startup(dispatcher):
+    logging.info("Bot started successfully!")
 
+async def on_shutdown(dispatcher):
+    logging.info("Bot shutting down...")
+    await bot.close()
 
-async def main():
-    """Точка входа"""
-    bot = Bot(
-        token=BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+if __name__ == '__main__':
+    from aiogram import executor
+    executor.start_polling(
+        dp,
+        skip_updates=True,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown
     )
-    storage = MemoryStorage()
-    dp = Dispatcher(storage=storage)
-    
-    # Регистрируем роутеры в диспетчере
-    dp.include_router(start_router)
-    dp.include_router(booking_router)
-    dp.include_router(admin_router)
-    dp.include_router(prices_router)
-    dp.include_router(portfolio_router)
-    dp.include_router(cancel_router)
-    
-    # Регистрируем хуки запуска/остановки
-    dp.startup.register(on_startup)
-    dp.shutdown.register(on_shutdown)
-    
-    # Запускаем polling
-    logger.info("🎯 Запускаем polling...")
-    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("👋 Остановка по Ctrl+C")
-    except Exception as e:
-        logger.error(f"❌ Критическая ошибка: {e}", exc_info=True)
