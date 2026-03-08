@@ -1,13 +1,20 @@
+"""
+Конфигурация бота
+"""
 import os
+from dotenv import load_dotenv
 
-# Telegram Bot Token
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+load_dotenv()
 
-# Channel ID for subscription check (without @)
-CHANNEL_ID = "your_channel_id"  # e.g., "mychannel" or "-1001234567890"
+# Токен бота от BotFather
+BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
 
-# Database path
-DB_PATH = "data/bot_database.db"
+# ID администраторов (список Telegram ID)
+ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
 
-# Admin IDs (list of Telegram user IDs who can access admin panel)
-ADMIN_IDS = [123456789]  # Replace with your actual Telegram user ID
+# ID канала для обязательной подписки (опционально)
+CHANNEL_ID = os.getenv("CHANNEL_ID", "")
+CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "")
+
+# Путь к базе данных
+DATABASE_PATH = os.getenv("DATABASE_PATH", "data/bot_database.db")
