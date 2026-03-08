@@ -39,7 +39,7 @@ class AdminSlotState(StatesGroup):
 
 
 async def start_handler(message: types.Message, state: FSMContext):
-    await state.finish()
+    await state.clear()
     
     telegram_id = message.from_user.id
     name = message.from_user.full_name
@@ -78,7 +78,7 @@ async def book_handler(message: types.Message, state: FSMContext):
 
 async def process_service_selection(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "cancel":
-        await state.finish()
+        await state.clear()
         await callback.message.answer("Запись отменена", reply_markup=get_main_keyboard())
         return
     
@@ -105,7 +105,7 @@ async def process_service_selection(callback: types.CallbackQuery, state: FSMCon
 
 async def process_date_selection(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "cancel":
-        await state.finish()
+        await state.clear()
         await callback.message.answer("Запись отменена", reply_markup=get_main_keyboard())
         return
     
@@ -135,7 +135,7 @@ async def process_date_selection(callback: types.CallbackQuery, state: FSMContex
 
 async def process_time_selection(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "cancel":
-        await state.finish()
+        await state.clear()
         await callback.message.answer("Запись отменена", reply_markup=get_main_keyboard())
         return
     
@@ -149,7 +149,7 @@ async def process_time_selection(callback: types.CallbackQuery, state: FSMContex
     
     if not service:
         await callback.message.answer("❌ Услуга не найдена")
-        await state.finish()
+        await state.clear()
         return
     
     await BookingState.confirming.set()
@@ -164,7 +164,7 @@ async def process_time_selection(callback: types.CallbackQuery, state: FSMContex
 
 async def process_confirmation(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "cancel":
-        await state.finish()
+        await state.clear()
         await callback.message.answer("Запись отменена", reply_markup=get_main_keyboard())
         return
     
@@ -178,7 +178,7 @@ async def process_confirmation(callback: types.CallbackQuery, state: FSMContext)
     
     if not all([service_id, date, time]):
         await callback.message.answer("❌ Ошибка: данные записи не найдены")
-        await state.finish()
+        await state.clear()
         return
     
     async with get_db() as db:
@@ -186,7 +186,7 @@ async def process_confirmation(callback: types.CallbackQuery, state: FSMContext)
         
         if not slot or not slot['is_available']:
             await callback.message.answer("❌ К сожалению, этот слот только что заняли.\nПожалуйста, выберите другое время.")
-            await state.finish()
+            await state.clear()
             return
         
         booking_id = await create_booking(db, callback.from_user.id, service_id, date, time)
@@ -200,7 +200,7 @@ async def process_confirmation(callback: types.CallbackQuery, state: FSMContext)
         reply_markup=get_main_keyboard()
     )
     
-    await state.finish()
+    await state.clear()
     await callback.answer()
 
 
@@ -269,7 +269,7 @@ async def process_service_price(message: types.Message, state: FSMContext):
             await db.commit()
         
         await message.answer(f"✅ Услуга '{service_name}' успешно добавлена!\nЦена: {service_price}₽", reply_markup=get_admin_keyboard())
-        await state.finish()
+        await state.clear()
         
     except ValueError:
         await message.answer("❌ Неверный формат цены. Введите положительное целое число:")
@@ -310,14 +310,14 @@ async def process_slot_time(message: types.Message, state: FSMContext):
             
             if existing_slot:
                 await message.answer("❌ Такой слот уже существует.\nПожалуйста, выберите другое время или дату.", reply_markup=get_admin_keyboard())
-                await state.finish()
+                await state.clear()
                 return
             
             await create_slot(db, date_str, time_str)
             await db.commit()
         
         await message.answer(f"✅ Слот успешно создан!\n\nДата: {datetime.strptime(date_str, '%Y-%m-%d').strftime('%d.%m.%Y')}\nВремя: {time_str}", reply_markup=get_admin_keyboard())
-        await state.finish()
+        await state.clear()
         
     except ValueError:
         await message.answer("❌ Неверный формат времени. Используйте ЧЧ:ММ:")
