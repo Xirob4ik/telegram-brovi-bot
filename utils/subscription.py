@@ -16,8 +16,9 @@ async def check_user_subscription(bot: Bot, user_id: int) -> bool:
         status = member.status
         # Разрешённые статусы
         return status in ["member", "administrator", "creator"]
-    except TelegramBadRequest:
-        # Канал приватный или бот не админ
-        return False
-    except Exception:
-        return False
+    except Exception as e:
+        # Если бот не админ в канале или канал приватный - считаем что пользователь подписан
+        # чтобы не блокировать работу бота
+        import logging
+        logging.warning(f"Не удалось проверить подписку: {e}. Считаем что пользователь подписан.")
+        return True
